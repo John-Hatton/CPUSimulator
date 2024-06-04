@@ -7,6 +7,7 @@
 #include <CPU32/CPU32.hpp>
 #include <regex>
 #include <algorithm>
+#include <cstdlib>
 
 // Function to convert a string to a uint32_t value, handling both hex and decimal formats
 uint32_t stringToUInt32(const std::string& str) {
@@ -45,7 +46,10 @@ void showHelp() {
     std::cout << "  load <instructions> - Load a program (e.g., load 0x2 0x1 0x1111)\n";
     std::cout << "                         Or for HALT: load FF\n";
     std::cout << "  loadpgm <instructions> - Load a complete program (e.g., loadpgm 0x07010200, 0xFF000000)\n";
+    std::cout << "  memory <address> or <start-end> - Display memory contents at a specific address or range\n";
     std::cout << "  print               - Print the CPU state (registers, PC, flags)\n";
+    std::cout << "  clear (clr)         - Clear the console\n";
+    std::cout << "  reset               - Reset the CPU to initial state\n";
 }
 
 void printCPUState(const CPU32& cpu) {
@@ -57,6 +61,28 @@ void printCPUState(const CPU32& cpu) {
     std::cout << "Program Counter (PC): " << uint32ToHexString(cpu.GetProgramCounter()->GetState()) << std::endl;
     std::cout << "Flags: " << uint32ToHexString(cpu.GetState()) << std::endl;
     std::cout << "Halted: " << (cpu.halted ? "True" : "False") << std::endl;
+}
+
+void printMemory(const CPU32& cpu, uint32_t startAddress, uint32_t endAddress) {
+    auto memory = cpu.GetMemory();
+    std::cout << "Memory contents from " << uint32ToHexString(startAddress) << " to " << uint32ToHexString(endAddress) << ":" << std::endl;
+    for (uint32_t address = startAddress; address <= endAddress; ++address) {
+        uint32_t value = memory->load(address);
+        std::cout << uint32ToHexString(address) << ": " << uint32ToHexString(value) << std::endl;
+    }
+}
+
+void clearConsole() {
+#ifdef _WIN32
+    std::system("cls");
+#else
+    std::system("clear");
+#endif
+}
+
+void resetCPU(CPU32& cpu) {
+    cpu = CPU32(1024); // Reinitialize the CPU with the same memory size
+    std::cout << "CPU reset to initial state." << std::endl;
 }
 
 std::string getInstructionDescription(uint32_t opcode) {
@@ -178,6 +204,9 @@ int main() {
             } else {
                 std::cerr << "Unknown opcode." << std::endl;
             }
+
+            // Load the program into CPU memory
+            cpu.loadProgram(program, 0);
         } else if (command == "loadpgm") {
             std::string programHex;
             std::getline(iss, programHex);
@@ -197,8 +226,35 @@ int main() {
 
             program = newProgram;
             std::cout << "Program loaded successfully." << std::endl;
+
+            // Load the program into CPU memory
+            cpu.loadProgram(program, 0);
+        } else if (command == "memory") {
+            std::string range;
+            if (!(iss >> range)) {
+                std::cerr << "No address or range provided." << std::endl;
+                continue;
+            }
+
+            std::size_t dashPos = range.find('-');
+            if (dashPos == std::string::npos) {
+                // Single address
+                uint32_t address = stringToUInt32(range);
+                printMemory(cpu, address, address);
+            } else {
+                // Range of addresses
+                std::string startAddressStr = range.substr(0, dashPos);
+                std::string endAddressStr = range.substr(dashPos + 1);
+                uint32_t startAddress = stringToUInt32(startAddressStr);
+                uint32_t endAddress = stringToUInt32(endAddressStr);
+                printMemory(cpu, startAddress, endAddress);
+            }
         } else if (command == "print") {
             printCPUState(cpu);
+        } else if (command == "clear" || command == "clr") {
+            clearConsole();
+        } else if (command == "reset") {
+            resetCPU(cpu);
         } else {
             std::cerr << "Unknown command: " << command << std::endl;
         }
