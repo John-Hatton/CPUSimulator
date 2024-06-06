@@ -270,3 +270,36 @@ TEST_F(CPU32Test, ImmediateValueEdgeCase) {
     cpu->run();
     EXPECT_EQ(cpu->GetRegisters()[1]->GetState(), 0xFFFFFFFF);
 }
+
+TEST_F(CPU32Test, StoreImmediate32) {
+
+    auto expected = 0x05010400;
+
+    std::vector<uint32_t> program = {0xE4FFFFFF, 0x000000A0, 0x05010400, 0xFF000000}; // STORE  0x000000A0, 0x05010400 (Store the immediate value at address 0xA0) // TODO: Find the other case where I seem to have switched the order
+    cpu->loadProgram(program, 0);
+    cpu->run();
+    auto actual = cpu->GetMemory()->load(0xA0);
+
+    EXPECT_EQ(expected, actual);
+}
+
+TEST_F(CPU32Test, AddImmediate16) {
+
+    std::vector<uint32_t> program = {0xE5010001, 0xFF000000}; // ADD R1, R2
+    cpu->loadProgram(program, 0);
+    cpu->GetRegisters()[1]->loadValue(10);
+    cpu->run();
+    EXPECT_EQ(cpu->GetRegisters()[1]->GetState(), 11);
+    EXPECT_EQ(cpu->GetZeroFlag(), false);
+}
+
+TEST_F(CPU32Test, For_Loop) {
+    // Should simulate a for loop, and the result (of incrementing some register) is done by a jump and compare.
+    std::vector<uint32_t> program = {0xE401FFFF, 0x19, 0xE5010001, 0xE401FFFF, 0x1A, 0xE5020001, 0xE401FFFF, 0x1C, 0x10020009, 0xE401FFFF, 0x1D, 0x17000019, 0xE401FFFF, 0x1E, 0xFF000000, 0x02010000, 0x02020000, 0x12000019};
+    cpu->loadProgram(program, 0);
+    cpu->GetRegisters()[1]->loadValue(10);
+    cpu->run();
+    EXPECT_EQ(cpu->GetRegisters()[1]->GetState(), 9);
+    EXPECT_EQ(cpu->GetZeroFlag(), false);
+}
+

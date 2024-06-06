@@ -27,6 +27,9 @@ public:
     std::vector<std::shared_ptr<Register32>> GetRegisters() const;
     std::shared_ptr<Register32> GetProgramCounter() const;
     std::shared_ptr<Memory32> GetMemory() const;
+    std::shared_ptr<Flags32> GetFlagsRegister() const;
+
+    // Subject/Observer Interface
     uint32_t GetState() const override;
     void Update(uint32_t state) override;
 
@@ -44,7 +47,9 @@ private:
     void movImmediate32ToRegister();
     void load();
     void store();
+    void storeImmediate32();
     void add();
+    void addImmediate();
     void sub();
     void andOp();
     void orOp();
@@ -67,6 +72,7 @@ private:
 
     uint32_t instruction;
     uint32_t immediateOperand;
+    uint32_t addressOperand;
     uint32_t returnAddress;
 
     std::shared_ptr<Clock32> clock;

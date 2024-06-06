@@ -44,6 +44,8 @@ CPU32::CPU32(size_t memorySize)
     opcodeMap[0x40] = &CPU32::inOp;
     opcodeMap[0x41] = &CPU32::outOp;
     opcodeMap[0xE2] = &CPU32::movImmediate32ToRegister;
+    opcodeMap[0xE4] = &CPU32::storeImmediate32;
+    opcodeMap[0xE5] = &CPU32::addImmediate;
     opcodeMap[0xFF] = &CPU32::hlt;
 }
 
@@ -83,22 +85,33 @@ std::shared_ptr<Memory32> CPU32::GetMemory() const {
     return memory;
 }
 
+std::shared_ptr<Flags32> CPU32::GetFlagsRegister() const {
+    return flagsRegister;
+}
+
 void CPU32::fetch() {
     uint32_t pc = programCounter->GetState();
     instruction = memory->load(pc);
 
-    // Set the program counter to the next instruction unless it's a jump
+    // Set the program counter to the next instruction unless it's a jump or storeImmediate32
     uint8_t opcode = (instruction >> 24) & 0xFF;
-    if (opcode != 0x12 && opcode != 0x13 && opcode != 0x14 && opcode != 0x15 && opcode != 0x16 && opcode != 0x17 && opcode != 0x18) {
+    if (opcode != 0x12 && opcode != 0x13 && opcode != 0x14 && opcode != 0x15 && opcode != 0x16 && opcode != 0x17 && opcode != 0x18 && opcode != 0xE4) {
         programCounter->loadValue(pc + 1);
     }
 
-    if ((instruction & 0xFF) == 0xFF) {
+    if (opcode == 0xE4) {
+        // If the opcode is 0xE4, it signals two immediate values are next
+        addressOperand = memory->load(programCounter->GetState() + 1); // PC is set to
+        programCounter->loadValue(programCounter->GetState() + 2);
+        immediateOperand = memory->load(programCounter->GetState());
+        programCounter->loadValue(programCounter->GetState() + 1);
+    } else if ((instruction & 0xFF) == 0xFF) {
         // If the last byte is 0xFF, it signals an immediate value is next
         immediateOperand = memory->load(programCounter->GetState());
         programCounter->loadValue(programCounter->GetState() + 1);
     } else {
         immediateOperand = 0;
+        addressOperand = 0;
     }
 }
 
@@ -148,6 +161,12 @@ void CPU32::store() {
     memory->store(address, value);
 }
 
+void CPU32::storeImmediate32() {
+    uint32_t value = immediateOperand;
+    uint32_t address = addressOperand;
+    memory->store(address, value);
+}
+
 void CPU32::add() {
     uint8_t reg1 = (instruction >> 16) & 0xFF;
     uint8_t reg2 = (instruction >> 8) & 0xFF;
@@ -167,6 +186,26 @@ void CPU32::add() {
     } else {
         flagsRegister->clearFlag(Flags32::SIGN);
     }
+}
+
+void CPU32::addImmediate() {
+    uint8_t regDest = (instruction >> 16) & 0x0F;
+    uint32_t immediate = instruction & 0xFFFF;
+    uint32_t currentValue = registers[regDest]->GetState();
+    uint32_t result = currentValue + immediate;
+    registers[regDest]->loadValue(result);
+
+    // Update flags
+    bool zeroFlag = (result == 0);
+    if (zeroFlag)
+    {
+        flagsRegister->setFlag(Flags32::ZERO);
+    }
+    else
+    {
+        flagsRegister->clearFlag(Flags32::ZERO);
+    }
+    // Update overflow and carry flags as needed
 }
 
 void CPU32::sub() {
@@ -408,3 +447,9 @@ void CPU32::SetZeroFlag(bool zFlag) {
         flagsRegister->clearFlag(Flags32::ZERO);
     }
 }
+
+
+
+
+
+

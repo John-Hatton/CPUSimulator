@@ -2,9 +2,12 @@
 // Created by John on 6/4/2024.
 //
 #include <CPU32/Register32.hpp>
+#include <sstream>
+#include <utility>
 
 #ifndef CPUSIMULATOR_FLAGS32_HPP
 #define CPUSIMULATOR_FLAGS32_HPP
+
 
 
 class Flags32 : public Register32 {
@@ -20,16 +23,44 @@ public:
 
     Flags32() : Register32() {}
 
-    void setFlag(Flags flag) { state |= flag; }
-    void clearFlag(Flags flag) { state &= ~flag; }
-    bool isFlagSet(Flags flag) const { return state & flag; }
-    uint32_t getFlags() const { return state; }
+    void setFlag(Flags flag) {
+        state |= flag;
+        updateFlagNames();
+    }
 
-    // Override loadValue to ensure flags are set correctly
-    // No need to override, because we already have this function in Register32.
-//    void loadValue(uint32_t value) override {
-//        state = value;
-//    }
+    void clearFlag(Flags flag) {
+        state &= ~flag;
+        updateFlagNames();
+    }
+
+    bool isFlagSet(Flags flag) const {
+        return state & flag;
+    }
+
+    uint32_t getFlags() const {
+        return state;
+    }
+
+    std::string getFlagNames() const {
+        return collectionOfFlags.empty() ? "None" : collectionOfFlags;
+    }
+
+private:
+    std::string collectionOfFlags;
+
+    void updateFlagNames() {
+        std::ostringstream ss;
+        if (isFlagSet(CARRY)) ss << "CARRY ";
+        if (isFlagSet(ZERO)) ss << "ZERO ";
+        if (isFlagSet(INTERRUPT)) ss << "INTERRUPT ";
+        if (isFlagSet(SIGN)) ss << "SIGN ";
+        if (isFlagSet(OVERFLOW)) ss << "OVERFLOW ";
+        if (isFlagSet(PARITY)) ss << "PARITY ";
+        collectionOfFlags = ss.str();
+        if (!collectionOfFlags.empty()) {
+            collectionOfFlags.pop_back(); // Remove trailing space
+        }
+    }
 };
 
 
