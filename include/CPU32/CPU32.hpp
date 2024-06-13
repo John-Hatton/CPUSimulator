@@ -23,6 +23,8 @@ public:
     std::shared_ptr<Register32> GetProgramCounter() const;
     std::shared_ptr<Memory32> GetMemory() const;
     std::shared_ptr<Flags32> GetFlagsRegister() const;
+    std::shared_ptr<Register32> GetStackPointer() const;
+
 
     // Subject/Observer Interface
     uint32_t GetState() const override;
@@ -75,7 +77,7 @@ private:
 
     std::shared_ptr<Clock32> clock;
     std::shared_ptr<Register32> programCounter;
-    Register32* stackPointer;
+    std::shared_ptr<Register32> stackPointer;
     std::shared_ptr<ALU32> alu;
     std::shared_ptr<Flags32> flagsRegister;
     std::vector<std::shared_ptr<Register32>> registers;

@@ -19,7 +19,7 @@ CPU32::CPU32(size_t memorySize)
     }
 
     // Initialize the stack pointer (register 15)
-    stackPointer = new Register32();
+    stackPointer = std::make_shared<Register32>();
     stackPointer->loadValue(memorySize);  // Stack pointer starts at the end of memory
 
 
@@ -95,6 +95,11 @@ std::shared_ptr<Memory32> CPU32::GetMemory() const {
 std::shared_ptr<Flags32> CPU32::GetFlagsRegister() const {
     return flagsRegister;
 }
+
+std::shared_ptr<Register32> CPU32::GetStackPointer() const {
+    return stackPointer;
+}
+
 
 void CPU32::fetch() {
     uint32_t pc = programCounter->GetState();
@@ -426,13 +431,31 @@ void CPU32::push() {
     memory->store(stackPointer->GetState(), value);
 }
 
+//void CPU32::pop() {
+////    if (stackPointer->GetState() >= memory->getSize() - 1) {
+////        throw std::runtime_error("Stack underflow");
+////    }
+////    uint8_t reg1 = (instruction >> 16) & 0xFF;
+////    stackPointer->loadValue(stackPointer->GetState() + 1);
+////    uint32_t value = memory->load(stackPointer->GetState());
+////    registers[reg1]->loadValue(value);
+//    if (stackPointer->GetState() >= memory->getSize() - 1) {
+//        throw std::runtime_error("Stack underflow");
+//    }
+//    uint8_t reg1 = (instruction >> 16) & 0xFF;
+//    uint32_t value = memory->load(stackPointer->GetState());
+//    registers[reg1]->loadValue(value);
+//    stackPointer->loadValue(stackPointer->GetState() + 1);
+//
+//}
+
 void CPU32::pop() {
-    if (stackPointer->GetState() >= memory->getSize() - 1) {
+    uint8_t reg1 = (instruction >> 16) & 0xFF;
+    if (stackPointer->GetState() >= memory->getSize()) {
         throw std::runtime_error("Stack underflow");
     }
-    uint8_t reg1 = (instruction >> 16) & 0xFF;
-    stackPointer->loadValue(stackPointer->GetState() + 1);
     uint32_t value = memory->load(stackPointer->GetState());
+    stackPointer->loadValue(stackPointer->GetState() + 1);
     registers[reg1]->loadValue(value);
 }
 
@@ -480,6 +503,7 @@ void CPU32::SetZeroFlag(bool zFlag) {
         flagsRegister->clearFlag(Flags32::ZERO);
     }
 }
+
 
 
 
