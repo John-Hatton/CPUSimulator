@@ -18,6 +18,11 @@ CPU32::CPU32(size_t memorySize)
         registers.push_back(std::make_shared<Register32>());
     }
 
+    // Initialize the stack pointer (register 15)
+    stackPointer = new Register32();
+    stackPointer->loadValue(memorySize);  // Stack pointer starts at the end of memory
+
+
     // Populate opcode map
     opcodeMap[0x00] = &CPU32::nop;
     opcodeMap[0x01] = &CPU32::movRegisterToRegister;
@@ -41,6 +46,8 @@ CPU32::CPU32(size_t memorySize)
     opcodeMap[0x18] = &CPU32::jge;
     opcodeMap[0x30] = &CPU32::call;
     opcodeMap[0x31] = &CPU32::ret;
+    opcodeMap[0x32] = & CPU32::push;
+    opcodeMap[0x33] = & CPU32::pop;
     opcodeMap[0x40] = &CPU32::inOp;
     opcodeMap[0x41] = &CPU32::outOp;
     opcodeMap[0xE2] = &CPU32::movImmediate32ToRegister;
@@ -396,11 +403,37 @@ void CPU32::jge() {
 void CPU32::call() {
     uint32_t address = instruction & 0xFFFF;
     returnAddress = programCounter->GetState();
+    stackPointer->loadValue(stackPointer->GetState() - 1);
+    memory->store(stackPointer->GetState(), returnAddress);
+
+    // Jump to the target address
     programCounter->loadValue(address);
 }
 
 void CPU32::ret() {
+    returnAddress = memory->load(stackPointer->GetState());
+    stackPointer->loadValue(stackPointer->GetState() + 1);
     programCounter->loadValue(returnAddress);
+}
+
+void CPU32::push() {
+    uint8_t reg1 = (instruction >> 16) & 0xFF;
+    uint32_t value = registers[reg1]->GetState();
+    if (stackPointer->GetState() == 0) {
+        throw std::runtime_error("Stack overflow");
+    }
+    stackPointer->loadValue(stackPointer->GetState() - 1);
+    memory->store(stackPointer->GetState(), value);
+}
+
+void CPU32::pop() {
+    if (stackPointer->GetState() >= memory->getSize() - 1) {
+        throw std::runtime_error("Stack underflow");
+    }
+    uint8_t reg1 = (instruction >> 16) & 0xFF;
+    stackPointer->loadValue(stackPointer->GetState() + 1);
+    uint32_t value = memory->load(stackPointer->GetState());
+    registers[reg1]->loadValue(value);
 }
 
 void CPU32::inOp() {

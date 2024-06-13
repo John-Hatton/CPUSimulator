@@ -11,7 +11,7 @@
 
 class Memory32 {
 public:
-    Memory32(size_t size) : memory(size, 0) {}
+    Memory32(size_t s) : memory(s, 0) {size = s;}
 
     uint32_t load(uint32_t address) const {
         if (address < memory.size()) {
@@ -29,7 +29,10 @@ public:
         }
     }
 
+    size_t getSize() const { return size; }
+
 private:
+    size_t size;
     std::vector<uint32_t> memory;
 };
 

@@ -7,6 +7,7 @@ add_executable(CPUSimulator_Tests
         ${SOURCE_FILES}
 
         ../source/CPU32/CPU32.cpp
+        ../source/Instructor/Instructor.cpp
 )
 
 target_link_libraries(CPUSimulator_Tests gtest gtest_main)

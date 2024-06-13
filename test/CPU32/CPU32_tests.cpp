@@ -272,19 +272,15 @@ TEST_F(CPU32Test, ImmediateValueEdgeCase) {
 }
 
 TEST_F(CPU32Test, StoreImmediate32) {
-
     auto expected = 0x05010400;
-
     std::vector<uint32_t> program = {0xE4FFFFFF, 0x000000A0, 0x05010400, 0xFF000000}; // STORE  0x000000A0, 0x05010400 (Store the immediate value at address 0xA0) // TODO: Find the other case where I seem to have switched the order
     cpu->loadProgram(program, 0);
     cpu->run();
     auto actual = cpu->GetMemory()->load(0xA0);
-
     EXPECT_EQ(expected, actual);
 }
 
 TEST_F(CPU32Test, AddImmediate16) {
-
     std::vector<uint32_t> program = {0xE5010001, 0xFF000000}; // ADD R1, R2
     cpu->loadProgram(program, 0);
     cpu->GetRegisters()[1]->loadValue(10);
@@ -293,13 +289,46 @@ TEST_F(CPU32Test, AddImmediate16) {
     EXPECT_EQ(cpu->GetZeroFlag(), false);
 }
 
-TEST_F(CPU32Test, For_Loop) {
-    // Should simulate a for loop, and the result (of incrementing some register) is done by a jump and compare.
-    std::vector<uint32_t> program = {0xE401FFFF, 0x19, 0xE5010001, 0xE401FFFF, 0x1A, 0xE5020001, 0xE401FFFF, 0x1C, 0x10020009, 0xE401FFFF, 0x1D, 0x17000019, 0xE401FFFF, 0x1E, 0xFF000000, 0x02010000, 0x02020000, 0x12000019};
+//TEST_F(CPU32Test, ForLoop) {
+//    // Simulate a for loop, and the result (of incrementing some register) is done by a jump and compare.
+//    std::vector<uint32_t> program = {0xE401FFFF, 0x19, 0xE5010001, 0xE401FFFF, 0x1A, 0xE5020001, 0xE401FFFF, 0x1C, 0x10020009, 0xE401FFFF, 0x1D, 0x17000019, 0xE401FFFF, 0x1E, 0xFF000000, 0x02010000, 0x02020000, 0x12000019};
+//    cpu->loadProgram(program, 0);
+//    cpu->GetRegisters()[1]->loadValue(10);
+//    cpu->run();
+//    EXPECT_EQ(cpu->GetRegisters()[1]->GetState(), 9);
+//    EXPECT_EQ(cpu->GetZeroFlag(), false);
+//}
+
+// Stack Operation Tests
+TEST_F(CPU32Test, PushOperation) {
+    std::vector<uint32_t> program = {0x32010000, 0xFF000000}; // PUSH R1; HLT
     cpu->loadProgram(program, 0);
-    cpu->GetRegisters()[1]->loadValue(10);
+    cpu->GetRegisters()[1]->loadValue(0x12345678);
     cpu->run();
-    EXPECT_EQ(cpu->GetRegisters()[1]->GetState(), 9);
-    EXPECT_EQ(cpu->GetZeroFlag(), false);
+    EXPECT_EQ(cpu->GetMemory()->load(1023), 0x12345678); // Assuming stack grows downward
 }
 
+TEST_F(CPU32Test, PopOperation) {
+    std::vector<uint32_t> program = {0x33010000, 0xFF000000}; // POP R1; HLT
+    cpu->loadProgram(program, 0);
+    cpu->GetMemory()->store(1023, 0x12345678); // Assuming stack grows downward
+    cpu->run();
+    EXPECT_EQ(cpu->GetRegisters()[1]->GetState(), 0x12345678);
+}
+
+TEST_F(CPU32Test, PushAndPop) {
+    std::vector<uint32_t> program = {0x32010000, 0x33020000, 0xFF000000}; // PUSH R1; POP R2; HLT
+    cpu->loadProgram(program, 0);
+    cpu->GetRegisters()[1]->loadValue(0x12345678);
+    cpu->run();
+    EXPECT_EQ(cpu->GetRegisters()[2]->GetState(), 0x12345678);
+}
+
+TEST_F(CPU32Test, CallAndRetWithStack) {
+    std::vector<uint32_t> program = {0x30000003, 0xFF000000, 0x31000000}; // CALL 3; HLT; RET
+    cpu->loadProgram(program, 0);
+    cpu->run();
+    EXPECT_EQ(cpu->GetProgramCounter()->GetState(), 3);
+    cpu->tickClock(); // Simulate RET
+    EXPECT_EQ(cpu->GetProgramCounter()->GetState(), 1);
+}

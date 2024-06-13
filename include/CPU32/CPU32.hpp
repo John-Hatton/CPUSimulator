@@ -1,20 +1,15 @@
-//
-// Created by John on 6/3/2024.
-//
+#ifndef CPUSIMULATOR_CPU32_HPP
+#define CPUSIMULATOR_CPU32_HPP
+
 #include <CPUComponent.hpp>
 #include <CPU32/Register32.hpp>
 #include <CPU32/Memory32.hpp>
 #include <CPU32/Clock32.hpp>
 #include <CPU32/ALU32.hpp>
 #include <CPU32/Flags32.hpp>
-
 #include <memory>
 #include <vector>
 #include <map>
-
-#ifndef CPUSIMULATOR_CPU32_HPP
-#define CPUSIMULATOR_CPU32_HPP
-
 
 class CPU32 : public CPUComponent {
 public:
@@ -70,6 +65,9 @@ private:
     void outOp();
     void hlt();
 
+    void push(); // Push operation
+    void pop();  // Pop operation
+
     uint32_t instruction;
     uint32_t immediateOperand;
     uint32_t addressOperand;
@@ -77,6 +75,7 @@ private:
 
     std::shared_ptr<Clock32> clock;
     std::shared_ptr<Register32> programCounter;
+    Register32* stackPointer;
     std::shared_ptr<ALU32> alu;
     std::shared_ptr<Flags32> flagsRegister;
     std::vector<std::shared_ptr<Register32>> registers;
